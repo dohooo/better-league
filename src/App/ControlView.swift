@@ -2,74 +2,60 @@ import SwiftUI
 
 struct ControlView: View {
     @ObservedObject var model: GuardModel
-    @Environment(\.colorScheme) private var colorScheme
-    private var accent: Color {
-        colorScheme == .dark ? Color(red: 0.49, green: 0.76, blue: 0.63) : Color(red: 0.18, green: 0.43, blue: 0.34)
-    }
+    private let accent = Color(red: 0.27, green: 0.66, blue: 0.53)
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 24) {
-            HStack(spacing: 12) {
+        VStack(alignment: .leading, spacing: 18) {
+            HStack(spacing: 10) {
                 Image(systemName: "cursorarrow")
-                    .font(.system(size: 24, weight: .medium))
+                    .font(.system(size: 15, weight: .medium))
                     .foregroundStyle(accent)
-                    .frame(width: 46, height: 46)
-                    .background(accent.opacity(0.10), in: RoundedRectangle(cornerRadius: 13))
+                    .frame(width: 26, height: 26)
+                    .background(.primary.opacity(0.06), in: RoundedRectangle(cornerRadius: 8))
                     .accessibilityHidden(true)
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Better League")
-                        .font(.system(size: 20, weight: .semibold))
-                    Text("Keep your game cursor visible.")
-                        .font(.system(size: 12))
-                        .foregroundStyle(.secondary)
-                }
+                Text("Better League")
+                    .font(.system(size: 15, weight: .semibold))
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
+            .gesture(WindowDragGesture())
 
             VStack(alignment: .leading, spacing: 10) {
-                HStack {
-                    VStack(alignment: .leading, spacing: 5) {
+                HStack(spacing: 16) {
+                    VStack(alignment: .leading, spacing: 3) {
                         Text("Cursor recovery")
-                            .font(.system(size: 14, weight: .medium))
-                        HStack(spacing: 5) {
-                            Circle().fill(model.isEnabled ? accent : Color.secondary.opacity(0.5))
-                                .frame(width: 5, height: 5)
-                            Text(model.isEnabled ? "On" : "Off")
-                                .font(.system(size: 11))
-                                .foregroundStyle(.secondary)
-                        }
+                            .font(.system(size: 15))
+                        Text(model.status)
+                            .font(.system(size: 12))
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
-                    Spacer()
+                    Spacer(minLength: 0)
                     Toggle("Cursor recovery", isOn: Binding(get: { model.isEnabled }, set: { model.setEnabled($0) }))
                         .labelsHidden()
                         .toggleStyle(.switch)
+                        .controlSize(.large)
                         .tint(accent)
+                        .fixedSize()
                         .accessibilityIdentifier("recovery-toggle")
-                }
-
-                if model.status != "Recovery is off" {
-                    Text(model.status)
-                        .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
                 }
                 if model.needsAccessibility {
                     Button("Open Accessibility Settings", action: model.openAccessibilitySettings)
                         .font(.system(size: 11, weight: .medium))
-                        .buttonStyle(.link)
+                        .buttonStyle(.glass)
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(16)
-            .background(.background.opacity(0.7), in: RoundedRectangle(cornerRadius: 12))
-            .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(.primary.opacity(0.06)))
 
-            Text("Lives in the menu bar. Close this window anytime.")
-                .font(.system(size: 10))
-                .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity)
+            VStack(alignment: .leading, spacing: 16) {
+                Divider()
+                Text("Runs in the menu bar. Quit from the icon.")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+            }
         }
-        .padding(24)
-        .frame(width: 360)
-        .background(Color(nsColor: .windowBackgroundColor))
+        .padding(20)
+        .frame(width: 320)
+        .glassEffect(.regular, in: .rect(cornerRadius: 18))
+        .padding(2)
     }
 }

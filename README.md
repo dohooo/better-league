@@ -2,7 +2,7 @@
 
 A small macOS menu bar app that restores the League of Legends cursor when it turns into the system arrow.
 
-One switch. Close the window and keep playing.
+One switch in a native SwiftUI Liquid Glass panel. Hide the window and keep playing.
 
 ## Use
 
@@ -10,13 +10,13 @@ One switch. Close the window and keep playing.
 2. Launch the app and turn on **Cursor recovery**.
 3. Allow **Better League** in **System Settings → Privacy & Security → Accessibility** when prompted. Recovery starts once access is granted.
 
-Use the menu bar icon to turn recovery on or off, show or hide the window, or quit. Closing the window keeps recovery running. The app stays out of the Dock and remembers the switch setting between launches. Quitting stops recovery.
+Use the menu bar icon to turn recovery on or off, show or hide the window, or quit. Drag the panel by its title, and press Escape or Command-W to hide it while recovery keeps running. The app stays out of the Dock and remembers the switch setting between launches. Quitting stops recovery.
 
 If you already run the `lol` command-line guard, stop it with `lol stop` before enabling the app. Only one recovery instance can run at a time.
 
 ## Requirements
 
-- macOS 14 or later. The app builds for Apple silicon and Intel; game behavior still needs testing on each setup.
+- macOS 26 or later for native Liquid Glass. The app builds for Apple silicon and Intel; game behavior still needs testing on each setup.
 - League of Legends with attack-move targeting bound to the physical **A** key.
 - Accessibility permission for Better League.
 
@@ -35,7 +35,7 @@ The app uses system input events. It does not read or modify game memory.
 
 ## Build locally
 
-Requires Xcode Command Line Tools and a Swift compiler supporting macOS 14.
+Requires Xcode 26 or later, or matching Command Line Tools with the macOS 26 SDK.
 
 ```sh
 make build

@@ -8,9 +8,9 @@ run: build
 
 cli: .build/lolrestore
 
-.build/lolrestore: $(wildcard src/Core/*.swift src/CLI/*.swift)
+.build/lolrestore: $(wildcard src/Core/*.swift src/CLI/*.swift) Makefile
 	@mkdir -p .build
-	xcrun swiftc -O -parse-as-library -target $$(uname -m)-apple-macosx14.0 src/Core/*.swift src/CLI/*.swift -o "$@"
+	xcrun swiftc -O -parse-as-library -target $$(uname -m)-apple-macosx26.0 src/Core/*.swift src/CLI/*.swift -o "$@"
 
 dist: build
 	./scripts/package.sh

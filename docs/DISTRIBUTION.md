@@ -1,6 +1,6 @@
 # Distribution
 
-Better League ships as a universal macOS app in a drag-to-Applications disk image. Its bundle identifier is `com.dohooo.better-league`; keep this identifier and the signing team stable so macOS can recognize updates.
+Better League ships as a universal macOS 26 app in a drag-to-Applications disk image. Its bundle identifier is `com.dohooo.better-league`; keep this identifier and the signing team stable so macOS can recognize updates.
 
 ## Local test build
 
@@ -62,7 +62,7 @@ Private repository releases are only available to people with repository access.
 - Drag the app from the DMG into Applications, launch it, and grant Accessibility.
 - Enable recovery from the window and confirm the menu checkmark changes.
 - Disable recovery from the menu and confirm the window switch changes.
-- Close the window, reopen it from the menu, and confirm the app never appears in the Dock.
+- Drag the panel by its title. Hide it with Escape or Command-W, reopen it from the menu, and confirm the app never appears in the Dock.
 - Quit, relaunch, and confirm the saved switch preference.
 - In a match, reproduce the cursor issue and observe the actual recovery. Check chat, shop, display mode, and app switching separately.
 

@@ -32,10 +32,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
             NSApp.terminate(nil)
             return
         }
-        window = NSWindow(contentRect: .zero, styleMask: [.titled, .closable], backing: .buffered, defer: false)
+        window = RecoveryWindow(contentRect: .zero, styleMask: [.borderless], backing: .buffered, defer: false)
         window.title = "Better League"
-        window.titlebarAppearsTransparent = true
-        window.titleVisibility = .hidden
+        window.backgroundColor = .clear
+        window.isOpaque = false
+        window.hasShadow = true
+        window.isMovableByWindowBackground = true
         window.isReleasedWhenClosed = false
         window.delegate = self
         let mainMenu = NSMenu()
@@ -45,7 +47,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
         applicationItem.submenu = applicationMenu
         mainMenu.addItem(applicationItem)
         let windowMenu = NSMenu(title: "Window")
-        windowMenu.addItem(withTitle: "Close Window", action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")
+        let closeWindow = windowMenu.addItem(withTitle: "Close Window", action: #selector(hideWindow), keyEquivalent: "w")
+        closeWindow.target = self
         let windowMenuItem = NSMenuItem()
         windowMenuItem.submenu = windowMenu
         mainMenu.addItem(windowMenuItem)
@@ -104,8 +107,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
     }
 
     @objc private func toggleWindow() {
-        if window.isVisible { window.orderOut(nil) } else { showWindow() }
+        if window.isVisible { hideWindow() } else { showWindow() }
     }
+
+    @objc private func hideWindow() { window.orderOut(nil) }
 
     @objc private func quit() { NSApp.terminate(nil) }
 
@@ -117,4 +122,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
 
     func applicationWillTerminate(_ notification: Notification) { model.stop() }
+}
+
+private final class RecoveryWindow: NSWindow {
+    override var canBecomeKey: Bool { true }
+    override var canBecomeMain: Bool { true }
+
+    override func cancelOperation(_ sender: Any?) { orderOut(sender) }
 }
