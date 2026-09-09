@@ -1,0 +1,43 @@
+#!/bin/zsh
+# lol — command-line controls for Better League (lolrestore)
+# Usage: lol          Start in the background (one instance)
+#        lol stop     Stop the command-line guard
+#        lol status   Show status
+#        lol log      Follow logs (Ctrl+C stops following)
+ROOT="${0:A:h:h}"
+BIN="$ROOT/.build/lolrestore"
+LOG="$HOME/Library/Logs/better-league/lolrestore.log"
+
+case "$1" in
+  stop)
+    if pkill -x lolrestore 2>/dev/null; then echo "Cursor recovery stopped"; else echo "Not running"; fi
+    ;;
+  status)
+    if pgrep -xq lolrestore; then
+      echo "Running (PID $(pgrep -x lolrestore | tr '\n' ' '))"
+      tail -3 "$LOG" 2>/dev/null
+    else
+      echo "Not running"
+    fi
+    ;;
+  log)
+    tail -20 -F "$LOG"   # Follow the file across log rotation.
+    ;;
+  *)
+    if [[ ! -x "$BIN" ]]; then echo "Missing $BIN. Run make cli in the project directory first."; exit 1; fi
+    if pgrep -xq lolrestore; then
+      echo "Already running (PID $(pgrep -x lolrestore | tr '\n' ' ')); no second instance started"
+      exit 0
+    fi
+    nohup "$BIN" >/dev/null 2>&1 &
+    disown
+    sleep 0.5
+    if pgrep -xq lolrestore; then
+      echo "Cursor recovery started in the background. Waiting for a match."
+      echo "  Stop: lol stop   Status: lol status   Logs: lol log"
+    else
+      echo "Could not start. Run directly to see the error: $BIN"
+      exit 1
+    fi
+    ;;
+esac

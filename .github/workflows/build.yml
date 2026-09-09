@@ -1,0 +1,30 @@
+name: Build macOS app
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build app and local disk image
+        run: make dist cli
+      - name: Check bundle and scripts
+        run: |
+          plutil -lint resources/Info.plist
+          bash -n scripts/build.sh scripts/package.sh scripts/release.sh
+          zsh -n bin/lol
+          codesign --verify --deep --strict '.build/Better League.app'
+          lipo -verify_arch arm64 x86_64 '.build/Better League.app/Contents/MacOS/BetterLeague'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Better-League-macos-local
+          path: dist/*
+          if-no-files-found: error
