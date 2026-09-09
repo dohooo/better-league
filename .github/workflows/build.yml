@@ -22,7 +22,7 @@ jobs:
           bash -n scripts/build.sh scripts/package.sh scripts/release.sh
           zsh -n bin/lol
           codesign --verify --deep --strict '.build/Better League.app'
-          lipo -verify_arch arm64 x86_64 '.build/Better League.app/Contents/MacOS/BetterLeague'
+          lipo '.build/Better League.app/Contents/MacOS/BetterLeague' -verify_arch arm64 x86_64
       - uses: actions/upload-artifact@v4
         with:
           name: Better-League-macos-local
