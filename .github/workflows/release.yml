@@ -73,11 +73,13 @@ jobs:
           name: notarization-reports
           path: .build/notary-*.json
           if-no-files-found: ignore
+          include-hidden-files: true
       - name: Publish verified release assets
         run: |
           dmg="dist/Better-League-$RELEASE_VERSION.dmg"
-          gh release create "$RELEASE_TAG" "$dmg" "$dmg.sha256" --draft --target "$GITHUB_SHA" --title "Better League $RELEASE_VERSION" --notes-file "docs/releases/$RELEASE_VERSION.md"
+          gh api "repos/$GITHUB_REPOSITORY/git/refs" -f ref="refs/tags/$RELEASE_TAG" -f sha="$GITHUB_SHA" >/dev/null
           test "$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$RELEASE_TAG" --jq '.object.sha')" = "$GITHUB_SHA"
+          gh release create "$RELEASE_TAG" "$dmg" "$dmg.sha256" --draft --verify-tag --title "Better League $RELEASE_VERSION" --notes-file "docs/releases/$RELEASE_VERSION.md"
           gh release download "$RELEASE_TAG" --dir .build/release-download --pattern "$(basename "$dmg")" --pattern "$(basename "$dmg").sha256"
           cmp "$dmg.sha256" ".build/release-download/$(basename "$dmg").sha256"
           (cd .build/release-download && shasum -a 256 -c "$(basename "$dmg").sha256")
