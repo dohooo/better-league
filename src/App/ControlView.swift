@@ -56,6 +56,5 @@ struct ControlView: View {
         .padding(20)
         .frame(width: 320)
         .glassEffect(.regular, in: .rect(cornerRadius: 18))
-        .padding(2)
     }
 }
