@@ -1,0 +1,90 @@
+name: Release macOS app
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: macos-26
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Validate the release version
+        run: |
+          test "$GITHUB_REF" = refs/heads/main
+          version=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' resources/Info.plist)
+          [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          test -s "docs/releases/$version.md"
+          echo "RELEASE_VERSION=$version" >> "$GITHUB_ENV"
+          echo "RELEASE_TAG=v$version" >> "$GITHUB_ENV"
+      - name: Build and verify before signing
+        run: make check
+      - name: Configure signing and notarization
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          for name in APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Missing repository secret: $name"
+              exit 1
+            fi
+          done
+          keychain="$RUNNER_TEMP/better-league-signing.keychain-db"
+          certificate="$RUNNER_TEMP/better-league-signing.p12"
+          keychain_password=$(openssl rand -hex 24)
+          echo "::add-mask::$keychain_password"
+          printf '%s' "$APPLE_CERTIFICATE" | base64 --decode > "$certificate"
+          chmod 600 "$certificate"
+          security create-keychain -p "$keychain_password" "$keychain"
+          security set-keychain-settings -lut 3600 "$keychain"
+          security unlock-keychain -p "$keychain_password" "$keychain"
+          security import "$certificate" -P "$APPLE_CERTIFICATE_PASSWORD" -k "$keychain" -T /usr/bin/codesign -T /usr/bin/security
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$keychain_password" "$keychain" >/dev/null
+          security list-keychains -d user -s "$keychain"
+          identity=$(security find-identity -v -p codesigning "$keychain" | awk -v team="$APPLE_TEAM_ID" '/Developer ID Application/ && index($0, "(" team ")") { print $2; exit }')
+          if [ -z "$identity" ]; then
+            echo '::error::The certificate must contain a valid Developer ID Application identity and its certificate chain for APPLE_TEAM_ID.'
+            exit 1
+          fi
+          xcrun notarytool store-credentials better-league-ci --keychain "$keychain" --apple-id "$APPLE_ID" --password "$APPLE_PASSWORD" --team-id "$APPLE_TEAM_ID"
+          printf 'SIGN_IDENTITY=%s\nNOTARY_PROFILE=better-league-ci\nNOTARY_KEYCHAIN=%s\n' "$identity" "$keychain" >> "$GITHUB_ENV"
+          rm -f "$certificate"
+      - name: Sign, notarize, and verify the release
+        run: make release
+      - name: Upload notarization reports
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: notarization-reports
+          path: .build/notary-*.json
+          if-no-files-found: ignore
+      - name: Publish verified release assets
+        run: |
+          dmg="dist/Better-League-$RELEASE_VERSION.dmg"
+          gh release create "$RELEASE_TAG" "$dmg" "$dmg.sha256" --draft --target "$GITHUB_SHA" --title "Better League $RELEASE_VERSION" --notes-file "docs/releases/$RELEASE_VERSION.md"
+          test "$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$RELEASE_TAG" --jq '.object.sha')" = "$GITHUB_SHA"
+          gh release download "$RELEASE_TAG" --dir .build/release-download --pattern "$(basename "$dmg")" --pattern "$(basename "$dmg").sha256"
+          cmp "$dmg.sha256" ".build/release-download/$(basename "$dmg").sha256"
+          (cd .build/release-download && shasum -a 256 -c "$(basename "$dmg").sha256")
+          gh release edit "$RELEASE_TAG" --draft=false --latest
+      - name: Remove signing material
+        if: always()
+        run: |
+          keychain="$RUNNER_TEMP/better-league-signing.keychain-db"
+          if [ -f "$keychain" ]; then security delete-keychain "$keychain"; fi
+          rm -f "$RUNNER_TEMP/better-league-signing.p12"

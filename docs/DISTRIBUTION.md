@@ -6,6 +6,7 @@ Better League ships as a universal macOS 26 app in a drag-to-Applications disk i
 
 ```sh
 make dist
+make check
 ```
 
 Outputs:
@@ -15,7 +16,33 @@ Outputs:
 
 These builds are ad-hoc signed by default and are intended for local testing. They do not carry an Apple notarization ticket. The GitHub build workflow produces the same type of artifact.
 
-## Signed and notarized release
+## GitHub Actions release
+
+The **Build macOS app** workflow checks every push and pull request without signing secrets. It validates the universal binary, bundle metadata, app signature, DMG structure, and portable checksum.
+
+Configure these repository Actions secrets before the first release:
+
+| Secret | Value |
+| --- | --- |
+| `APPLE_CERTIFICATE` | Base64-encoded Developer ID Application `.p12`, including its private key and certificate chain |
+| `APPLE_CERTIFICATE_PASSWORD` | Password protecting that `.p12` |
+| `APPLE_ID` | Apple ID used for notarization |
+| `APPLE_PASSWORD` | App-specific password for that Apple ID |
+| `APPLE_TEAM_ID` | Developer team matching the signing certificate |
+
+Credentials are imported into a temporary runner keychain and removed at the end of the job. They are never needed by pull-request builds.
+
+Set the version and build number in `resources/Info.plist`, add `docs/releases/VERSION.md`, and push to `main`. After the build passes:
+
+```sh
+gh workflow run release.yml --ref main
+```
+
+The workflow builds and verifies again, signs and notarizes the app and DMG, and verifies the mounted result. Only then does it create a tag and draft release at the workflow's exact commit. It downloads the uploaded assets and verifies their checksum before publishing the release.
+
+Only run this workflow for a new version. It does not overwrite existing tags or releases. If publication stops after creating a draft, inspect the failed run and draft before retrying.
+
+## Local signed and notarized release
 
 Requires a valid **Developer ID Application** certificate with its private key and an Apple notarization account. The release script follows Apple's [notarization requirements](https://developer.apple.com/documentation/security/notarizing-macos-software-before-distribution).
 
@@ -41,21 +68,15 @@ The script:
 4. Mounts the final DMG read-only and rechecks the app's signature, ticket, and Gatekeeper acceptance.
 5. Writes the final DMG's SHA-256 checksum.
 
-A release stops on any failed command. Only use the unsuffixed `Better-League-VERSION.dmg` after the entire script succeeds. The script does not upload anything to GitHub.
+A release stops on any failed command or any notarization result other than `Accepted`. Only use the unsuffixed `Better-League-VERSION.dmg` after the entire script succeeds. The local script does not upload anything to GitHub.
 
-## Publish to the private repository
+## Verify a downloaded release
 
-Create a draft release for review after local verification:
+Put the DMG and its `.sha256` file in the same directory, then run:
 
 ```sh
-gh release create v0.1.0 \
-  dist/Better-League-0.1.0.dmg \
-  dist/Better-League-0.1.0.dmg.sha256 \
-  --draft --title 'Better League 0.1.0' \
-  --notes 'Initial macOS menu bar app with cursor recovery controls.'
+shasum -a 256 -c Better-League-0.1.0.dmg.sha256
 ```
-
-Private repository releases are only available to people with repository access. Review the draft and its installed app before publishing it.
 
 ## Manual acceptance
 

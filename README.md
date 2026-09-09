@@ -52,11 +52,12 @@ SIGN_IDENTITY='Developer ID Application: Your Name (TEAMID)' make build
 
 ```sh
 make dist       # Local test DMG and SHA-256 checksum in dist/
+make check      # Build, check signatures, and verify the mounted DMG
 ```
 
 Local disk images are not notarized releases. For Developer ID signing, Apple notarization, and final disk-image verification, see [Distribution](docs/DISTRIBUTION.md).
 
-GitHub Actions builds the universal app and uploads a local test DMG on pushes and pull requests. It does not publish a release.
+GitHub Actions builds and verifies the universal app on pushes and pull requests. The separate **Release macOS app** workflow signs, notarizes, verifies, and publishes the version in `resources/Info.plist` when manually started from `main`.
 
 ### Command-line development
 
@@ -89,4 +90,4 @@ Logs live in `~/Library/Logs/better-league/lolrestore.log`. They rotate at rough
 
 ## License
 
-A license will be selected before the public release.
+A license has not yet been specified.

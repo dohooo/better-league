@@ -9,21 +9,19 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: macos-26
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - name: Build app and local disk image
-        run: make dist cli
-      - name: Check bundle and scripts
-        run: |
-          plutil -lint resources/Info.plist
-          bash -n scripts/build.sh scripts/package.sh scripts/release.sh
-          zsh -n bin/lol
-          codesign --verify --deep --strict '.build/Better League.app'
-          lipo '.build/Better League.app/Contents/MacOS/BetterLeague' -verify_arch arm64 x86_64
-      - uses: actions/upload-artifact@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Build and verify the disk image
+        run: make check
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: Better-League-macos-local
           path: dist/*

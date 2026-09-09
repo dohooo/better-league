@@ -1,4 +1,4 @@
-.PHONY: build run cli dist release clean
+.PHONY: build run cli dist check release clean
 
 build:
 	./scripts/build.sh
@@ -14,6 +14,9 @@ cli: .build/lolrestore
 
 dist: build
 	./scripts/package.sh
+
+check: dist cli
+	./scripts/verify.sh "dist/Better-League-$$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' resources/Info.plist)-local.dmg"
 
 release:
 	./scripts/release.sh
