@@ -4,6 +4,8 @@ A small macOS menu bar app that restores the League of Legends cursor when it tu
 
 One switch in a native SwiftUI Liquid Glass panel. Hide the window and keep playing.
 
+![Better League's Liquid Glass panel on macOS](docs/images/better-league.png)
+
 ## Use
 
 1. Open the disk image and drag **Better League** into **Applications**.
