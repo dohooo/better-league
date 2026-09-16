@@ -3,13 +3,14 @@ import Foundation
 final class GuardLog {
     static let directory = FileManager.default.homeDirectoryForCurrentUser
         .appendingPathComponent("Library/Logs/better-league", isDirectory: true)
-    private let url = directory.appendingPathComponent("lolrestore.log")
+    private let url: URL
     private let formatter = DateFormatter()
     private let maxBytes = Int(ProcessInfo.processInfo.environment["LOLRESTORE_MAXLOG"] ?? "") ?? 3 * 1024 * 1024
     private var handle: FileHandle?
     private var bytes = 0
 
-    init() throws {
+    init(filename: String = "lolrestore.log") throws {
+        url = Self.directory.appendingPathComponent(filename)
         formatter.dateFormat = "yyyy-MM-dd HH:mm:ss.SSS"
         try FileManager.default.createDirectory(at: Self.directory, withIntermediateDirectories: true)
         try open()

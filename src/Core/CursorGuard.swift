@@ -4,7 +4,6 @@ import CoreGraphics
 
 @MainActor
 final class CursorGuard {
-    private let gameBundleID = "com.riotgames.LeagueofLegends.GameClient"
     private let attackMoveKey: CGKeyCode = 0 // Physical A key: attack-move targeting.
     // ---------- state ----------
     private var engaged = false
@@ -53,9 +52,6 @@ final class CursorGuard {
         onStatusChange?(engaged ? (captureMode ? "Watching your cursor" : "Waiting for full-screen play") : "Waiting for a match")
     }
 
-    private func gameApp() -> NSRunningApplication? {
-        NSWorkspace.shared.runningApplications.first { $0.bundleIdentifier == gameBundleID }
-    }
     private func mousePos() -> CGPoint { CGEvent(source: nil)?.location ?? .zero }
 
     private func injectAttackMoveKey() {
@@ -70,7 +66,7 @@ final class CursorGuard {
         let now = Date()
 
         if tick % 480 == 0 { // ~2s process poll
-            let running = gameApp() != nil
+            let running = leagueGameIsRunning()
             if running != engaged {
                 engaged = running
                 incident = nil

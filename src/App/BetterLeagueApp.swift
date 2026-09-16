@@ -17,11 +17,13 @@ struct BetterLeagueApp {
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWindowDelegate {
     private let model = GuardModel()
+    private let wifi = WifiModel()
     private var window: NSWindow!
     private var statusItem: NSStatusItem!
     private var recoveryItem: NSMenuItem!
+    private var wifiItem: NSMenuItem!
     private var windowItem: NSMenuItem!
-    private var subscription: AnyCancellable?
+    private var subscriptions = Set<AnyCancellable>()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         if let id = Bundle.main.bundleIdentifier,
@@ -53,7 +55,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
         windowMenuItem.submenu = windowMenu
         mainMenu.addItem(windowMenuItem)
         NSApp.mainMenu = mainMenu
-        let content = NSHostingView(rootView: ControlView(model: model))
+        let content = NSHostingView(rootView: ControlView(model: model, wifi: wifi))
         window.contentView = content
         window.setContentSize(content.fittingSize)
         window.center()
@@ -68,6 +70,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
         recoveryItem = NSMenuItem(title: "Cursor Recovery", action: #selector(toggleRecovery), keyEquivalent: "")
         recoveryItem.target = self
         menu.addItem(recoveryItem)
+        wifiItem = NSMenuItem(title: "Low-Latency Wi-Fi", action: #selector(toggleWifi), keyEquivalent: "")
+        wifiItem.target = self
+        menu.addItem(wifiItem)
         menu.addItem(.separator())
         windowItem = NSMenuItem(title: "Hide Window", action: #selector(toggleWindow), keyEquivalent: "")
         windowItem.target = self
@@ -76,11 +81,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
         quit.target = self
         menu.addItem(quit)
         statusItem.menu = menu
-        subscription = model.$isEnabled.sink { [weak self] enabled in
+        model.$isEnabled.sink { [weak self] enabled in
             self?.updateStatusItem(enabled: enabled)
-        }
+        }.store(in: &subscriptions)
+        wifi.$isEnabled.sink { [weak self] enabled in
+            self?.wifiItem.state = enabled ? .on : .off
+        }.store(in: &subscriptions)
         showWindow()
         model.restorePreference()
+        wifi.restorePreference()
     }
 
     private func updateStatusItem(enabled: Bool) {
@@ -106,6 +115,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
         if enabling && !model.isEnabled { showWindow() }
     }
 
+    @objc private func toggleWifi() {
+        let enabling = !wifi.isEnabled
+        wifi.setEnabled(enabling)
+        if enabling && !wifi.isEnabled { showWindow() }
+    }
+
     @objc private func toggleWindow() {
         if window.isVisible { hideWindow() } else { showWindow() }
     }
@@ -121,7 +136,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
 
-    func applicationWillTerminate(_ notification: Notification) { model.stop() }
+    func applicationWillTerminate(_ notification: Notification) {
+        model.stop()
+        wifi.stop()
+    }
 }
 
 private final class RecoveryWindow: NSWindow {
